@@ -42,6 +42,7 @@ let floatTypes = null;  // { below, above } decorations for the cat floating in 
 let floatEditor = null; // the editor the floating cat is in
 let floatingOnly = false; // "editor" mode and the cat is floating: the panel must not show a second cat
 let lastEditor = null;  // the code editor you used last (no editor is "active" while you type to Claude)
+let setUp = false;      // are the Claude Code hooks installed? Until they are, the panel offers "Set Up"
 
 const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
 const config = () => vscode.workspace.getConfiguration('dancingCat');
@@ -95,6 +96,7 @@ function activate(context) {
   );
 
   // Always start napping (an old "thinking" left over from a closed Claude shouldn't make it dance)
+  setUp = isSetUp();
   napping();
 
   // Watch the state file the Claude Code hooks write to
@@ -107,6 +109,12 @@ function activate(context) {
     else napping();
   });
   context.subscriptions.push({ dispose: () => fs.unwatchFile(STATE_FILE) });
+
+  // Notice when the hooks are installed or removed somewhere else
+  // (another VS Code window, by hand, or the uninstall cleanup)
+  const settingsChanged = () => refreshSetUp();
+  fs.watchFile(hooks.SETTINGS_FILE, { interval: 1000 }, settingsChanged);
+  context.subscriptions.push({ dispose: () => fs.unwatchFile(hooks.SETTINGS_FILE, settingsChanged) });
 
   context.subscriptions.push(
     vscode.commands.registerCommand('dancingCat.showDance', () => {
@@ -356,12 +364,24 @@ async function chooseCatsFolder() {
 
 // ---------- Setup: the Claude Code hooks ----------
 
+// Are the hooks in Claude Code's settings? An unreadable settings file counts as "no".
+function isSetUp() {
+  try { return hooks.hooksInstalled(); } catch { return false; }
+}
+
+// Check the hooks again, and redraw the panel if that changed
+function refreshSetUp() {
+  const now = isSetUp();
+  if (now === setUp) return;
+  setUp = now;
+  render();
+}
+
 // On startup, offer to set up the hooks if they're missing (unless the user said "Don't Ask Again").
 // Only the window you're using asks, and at most once a day ("Not Now" means "not today").
+// Whatever they answer, the panel keeps a "Set Up" button until the hooks are installed.
 async function offerSetup(context) {
-  let installed = false;
-  try { installed = hooks.hooksInstalled(); } catch { /* unreadable settings: offer anyway */ }
-  if (installed || context.globalState.get(DONT_ASK_SETUP)) return;
+  if (isSetUp() || context.globalState.get(DONT_ASK_SETUP)) return;
 
   if (!vscode.window.state.focused) {
     const sub = vscode.window.onDidChangeWindowState((s) => {
@@ -385,6 +405,7 @@ async function offerSetup(context) {
 async function installHooksCommand() {
   let changed;
   try { changed = hooks.installHooks(); } catch (e) { return settingsProblem(e, 'install'); }
+  refreshSetUp();
   if (!changed) {
     vscode.window.showInformationMessage('🐱 The Dancing Cat hooks are already set up.');
     return;
@@ -404,6 +425,7 @@ async function installHooksCommand() {
 async function removeHooksCommand() {
   let changed;
   try { changed = hooks.removeHooks(); } catch (e) { return settingsProblem(e, 'remove'); }
+  refreshSetUp();
   stopDancing();
   vscode.window.showInformationMessage(changed
     ? '🐱 Dancing Cat hooks removed from Claude Code\'s settings (previous settings saved as settings.json.bak).'
@@ -431,7 +453,8 @@ function render() {
   if (!view) return; // not visible yet; resolveWebviewView will render when it is
   const webview = view.webview;
   const roots = [mediaDir, path.dirname(sleepFile), customFolder()].filter(Boolean);
-  webview.options = { enableScripts: false, localResourceRoots: roots.map((d) => vscode.Uri.file(d)) };
+  // No scripts. Command links are on so the "Set Up" button can run the install command.
+  webview.options = { enableScripts: false, enableCommandUris: true, localResourceRoots: roots.map((d) => vscode.Uri.file(d)) };
   const src = catPath ? webview.asWebviewUri(vscode.Uri.file(catPath)).toString() : '';
   webview.html = pageHtml(webview.cspSource, src);
 }
@@ -446,6 +469,13 @@ const baseCss = `
   p { opacity:.8; margin:8px 0 0; font-size:12px; text-align:center; }
   .notes { position:absolute; bottom:8px; font-size:28px; animation: float 2s linear infinite; }
   @keyframes float { from { transform: translateY(0); opacity:1 } to { transform: translateY(-120px); opacity:0 } }
+  /* the "Set Up" link, drawn like a VS Code button */
+  .button { margin-top:10px; padding:4px 14px; border-radius:2px; font-size:13px; text-decoration:none;
+            background:var(--vscode-button-background); color:var(--vscode-button-foreground); }
+  .button:hover { background:var(--vscode-button-hoverBackground); }
+  .button:focus-visible { outline:1px solid var(--vscode-focusBorder); outline-offset:2px; }
+  .note { font-size:11px; }
+  .needs-setup .cat { max-height:calc(100vh - 130px); } /* leave room for the button and note */
 `;
 
 // One paw print: a big pad and four toes (toes point up; the CSS turns it to walk right)
@@ -490,13 +520,21 @@ function pageHtml(cspSource, src) {
   const picture = src
     ? `<img class="cat" src="${src}" alt="${thinking ? 'dancing' : 'napping'} cat">`
     : `<div class="emoji">${thinking ? '😸' : '😴'}</div>`;
+  // Without the hooks the cat never hears Claude, so "send a prompt to wake it up" wouldn't work:
+  // say what's missing and offer the fix instead
+  const needsSetup = !thinking && !setUp;
+  const text = needsSetup
+    ? `<p>The cat can't hear Claude yet.</p>
+       <a class="button" href="command:dancingCat.installHooks">Set Up</a>
+       <p class="note">Adds 3 small hooks to Claude Code's settings. A backup is made first.</p>`
+    : `<p>${message}</p>`;
   return `<!DOCTYPE html><html><head>
     <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${cspSource}; style-src 'unsafe-inline';">
     <style>${baseCss}</style>
-  </head><body class="${thinking ? 'dancing' : 'napping'}">
+  </head><body class="${thinking ? 'dancing' : 'napping'}${needsSetup ? ' needs-setup' : ''}">
     ${notes}
     ${picture}
-    <p>${message}</p>
+    ${text}
   </body></html>`;
 }
 

@@ -26,7 +26,7 @@ A random cat dances in VS Code while Claude Code is thinking, and takes a nap wh
 ## Getting started
 
 1. Install **Dancing Cat for Claude Code** from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=fatemeh-mokhtari.claude-dancing-cat) (or search for "Dancing Cat" in the Extensions view). You can also download the `.vsix` file from the [GitHub Releases](https://github.com/Fateme-mokhtari/claude-dancing-cat/releases) page and install it with **Extensions: Install from VSIX...**.
-2. Click **Set Up** in the message that appears. (Or open the Command Palette with `Ctrl+Shift+P` / `Cmd+Shift+P` and run **Dancing Cat: Install Claude Code Hooks**.)
+2. Click **Set Up** in the message that appears, or in the **Dancing Cat** panel tab. (Or open the Command Palette with `Ctrl+Shift+P` / `Cmd+Shift+P` and run **Dancing Cat: Install Claude Code Hooks**.)
 3. Restart Claude Code and send it a prompt. The cat starts dancing!
 
 Run **Dancing Cat: Show Me a Dance** any time to see a cat for 5 seconds.

@@ -12,7 +12,9 @@ const fakeHome = fs.mkdtempSync(path.join(os.tmpdir(), 'dancing-cat-ext-'));
 process.env.HOME = fakeHome;
 process.env.USERPROFILE = fakeHome;
 const claudeDir = path.join(fakeHome, '.claude');
+const hooks = require(path.join(root, 'hooks')); // the same copy extension.js uses
 const WATCH_WAIT = 1200; // the extension checks the state file every 300 ms
+const SETTINGS_WAIT = 2500; // ...and Claude's settings file every second
 
 // ---------- a fake "vscode" module with just what the extension uses ----------
 const calls = { info: [], warn: [], error: [] };
@@ -77,6 +79,8 @@ let passed = 0;
 const step = (name) => { passed++; console.log('ok -', name); };
 const setupPrompts = () => calls.info.filter((m) => m.includes('needs a few small hooks')).length;
 const builtInCatShown = () => /media\/[^"]+\.webp/.test(view.webview.html);
+const napping = () => /<body class="napping/.test(view.webview.html);
+const setupOffered = () => view.webview.html.includes('href="command:dancingCat.installHooks"');
 
 // Each "window" loads its own copy of the extension; globalState is shared between windows like in VS Code
 function openWindow(globalState) {
@@ -123,19 +127,27 @@ function openWindow(globalState) {
   step(`all ${pkg.contributes.commands.length} commands in package.json are registered (and no extra ones)`);
 
   provider.resolveWebviewView(view);
-  assert.ok(view.webview.html.includes('class="napping"'));
+  assert.ok(napping());
   assert.ok(view.webview.html.includes('sleeping-cat.webp'));
   assert.strictEqual(view.webview.options.enableScripts, false);
   step('the panel shows the sleeping cat while Claude is idle');
+
+  assert.ok(setupOffered(), 'hooks missing: the panel has a Set Up button');
+  assert.ok(view.webview.html.includes("can't hear Claude"), 'and says what is wrong');
+  assert.ok(!view.webview.html.includes('send Claude a prompt'), 'not "send a prompt" (that would not wake it)');
+  assert.strictEqual(view.webview.options.enableCommandUris, true, 'the Set Up link may run the command');
+  step('hooks missing (popup ignored or "Don\'t Ask Again"): the panel says so and offers Set Up');
 
   commands['dancingCat.showDance']();
   assert.ok(view.webview.html.includes('class="dancing"'));
   assert.ok(builtInCatShown(), 'a built-in cat is shown');
   assert.ok(statusItem.visible && statusItem.text.includes('dancing'));
+  assert.ok(!setupOffered(), 'no Set Up button while the cat dances');
   step('Show Me a Dance shows a built-in cat and the status bar item');
 
   commands['dancingCat.stop']();
-  assert.ok(view.webview.html.includes('class="napping"') && !statusItem.visible);
+  assert.ok(napping() && !statusItem.visible);
+  assert.ok(setupOffered(), 'Set Up button back after the dance');
   assert.strictEqual(fs.readFileSync(path.join(claudeDir, 'dancing-cat.state'), 'utf8'), 'idle');
   step('Stop Dancing puts the cat to sleep and writes "idle"');
 
@@ -143,7 +155,7 @@ function openWindow(globalState) {
   fs.writeFileSync(stateFile, 'thinking'); await sleep(WATCH_WAIT);
   assert.ok(view.webview.html.includes('class="dancing"'), '"thinking" makes it dance');
   fs.writeFileSync(stateFile, 'idle'); await sleep(WATCH_WAIT);
-  assert.ok(view.webview.html.includes('class="napping"'), '"idle" makes it nap');
+  assert.ok(napping(), '"idle" makes it nap');
   step('reacts to the state file written by the Claude Code hooks');
 
   const myCats = path.join(fakeHome, 'my cats');
@@ -277,9 +289,18 @@ function openWindow(globalState) {
   assert.deepStrictEqual(Object.keys(JSON.parse(fs.readFileSync(settingsFile, 'utf8')).hooks).sort(),
     ['SessionEnd', 'Stop', 'UserPromptSubmit']);
   assert.ok(calls.info.some((m) => m.includes('Hooks installed')), 'success message (Node.js found)');
+  assert.ok(!setupOffered(), 'installed: Set Up button gone right away');
+  assert.ok(view.webview.html.includes('send Claude a prompt'), 'installed: the usual nap message');
   await commands['dancingCat.removeHooks']();
   assert.ok(!fs.readFileSync(settingsFile, 'utf8').includes('dancing-cat'));
-  step('Install / Remove Claude Code Hooks commands work');
+  assert.ok(setupOffered(), 'removed: Set Up button back');
+  step('Install / Remove Claude Code Hooks commands work, and the panel follows');
+
+  hooks.installHooks(); await sleep(SETTINGS_WAIT);   // e.g. Set Up clicked in another window
+  assert.ok(!setupOffered(), 'hooks added elsewhere: Set Up button gone');
+  hooks.removeHooks(); await sleep(SETTINGS_WAIT);
+  assert.ok(setupOffered(), 'hooks removed elsewhere: Set Up button back');
+  step('the panel notices hooks installed or removed outside this window');
 
   fs.writeFileSync(settingsFile, '{ // comment\n}');
   await commands['dancingCat.installHooks']();
