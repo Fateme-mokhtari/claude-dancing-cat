@@ -38,7 +38,7 @@ Run **Dancing Cat: Choose Where the Cat Appears**:
 | Option | What you get |
 |---|---|
 | **Panel** (default) | The **Dancing Cat** tab in the bottom panel. Drag the tab anywhere you like: next to the Terminal, into a sidebar, or under the Claude chat. |
-| **Floating in the editor** *(experimental)* | A small cat next to your cursor, on top of your code. Clicks go through it. Meanwhile the panel shows a trail of paw prints 🐾. If no code file is open, the cat dances in the panel instead. |
+| **Floating in the editor** *(experimental)* | A small cat next to your cursor in the code file you used last, on top of your code. Clicks go through it. Meanwhile the panel shows a trail of paw prints 🐾. If no code file is open, the cat dances in the panel instead. |
 | **Both** | Panel and floating. |
 
 ## Use your own cats

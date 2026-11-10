@@ -43,6 +43,7 @@ let statusTimer = null;
 let floatTypes = null;  // { below, above } decorations for the cat floating in the editor
 let floatEditor = null; // the editor the floating cat is in
 let floatingOnly = false; // "editor" mode and the cat is floating: the panel must not show a second cat
+let lastEditor = null;  // the code editor you used last (no editor is "active" while you type to Claude)
 
 const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
 const config = () => vscode.workspace.getConfiguration('dancingCat');
@@ -84,8 +85,12 @@ function activate(context) {
       if (!placed) reveal();
     }
   };
+  if (isCodeEditor(vscode.window.activeTextEditor)) lastEditor = vscode.window.activeTextEditor;
   context.subscriptions.push(
-    vscode.window.onDidChangeActiveTextEditor(follow),
+    vscode.window.onDidChangeActiveTextEditor((e) => {
+      if (isCodeEditor(e)) lastEditor = e;
+      follow();
+    }),
     vscode.window.onDidChangeTextEditorSelection(follow),
     vscode.window.onDidChangeTextEditorVisibleRanges(follow),
     { dispose: stopFloating }
@@ -231,13 +236,26 @@ function startFloating(full) {
 
 // Editors the floating cat may sit in: code files, not the Output panel and similar
 const NOT_CODE = ['output', 'debug', 'vscode-scm', 'comment'];
+// Real files (on disk, new unsaved ones, remote). A diff view also contains an "old version"
+// editor (scheme "git") that is hidden in the inline diff layout, so prefer real files.
+const REAL_FILE = ['file', 'untitled', 'vscode-remote', 'vscode-userdata'];
 const isCodeEditor = (e) => !!e && !NOT_CODE.includes(e.document.uri.scheme);
+const isRealFile = (e) => isCodeEditor(e) && REAL_FILE.includes(e.document.uri.scheme);
+
+// The code editor to float in: the active one, or (while you type to Claude, when no editor is
+// active) the one you used last, or else a visible real file.
+function pickEditor() {
+  const active = vscode.window.activeTextEditor;
+  if (isCodeEditor(active)) return active;
+  const visible = vscode.window.visibleTextEditors;
+  if (lastEditor && visible.includes(lastEditor)) return lastEditor;
+  return visible.find(isRealFile) || visible.find(isCodeEditor);
+}
 
 // Put the cat next to the cursor (or the top of the screen if the cursor is scrolled away).
 // Returns false when there's no code editor open to float in.
 function placeFloatingCat() {
-  const active = vscode.window.activeTextEditor;
-  const editor = isCodeEditor(active) ? active : vscode.window.visibleTextEditors.find(isCodeEditor);
+  const editor = pickEditor();
   if (floatEditor && floatEditor !== editor) clearFloating(floatEditor);
   floatEditor = editor;
   if (!editor) return false;

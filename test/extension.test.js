@@ -165,11 +165,11 @@ function openWindow(globalState) {
   step('own cats folder works with full, relative and ~ paths, and falls back to the built-in cats');
 
   const decorated = new Map();
-  const makeEditor = (scheme) => ({
+  const makeEditor = (scheme, name = scheme) => ({
     document: { uri: { scheme } },
     selection: { active: { line: 3, character: 2 } },
     visibleRanges: [{ start: { line: 0, character: 0 }, end: { line: 40, character: 0 }, contains: () => true }],
-    setDecorations(type, ranges) { if (ranges.length) decorated.set(scheme, (decorated.get(scheme) || 0) + 1); }
+    setDecorations(type, ranges) { if (ranges.length) decorated.set(name, (decorated.get(name) || 0) + 1); }
   });
   const code = makeEditor('file');
   const output = makeEditor('output');
@@ -214,6 +214,30 @@ function openWindow(globalState) {
   commands['dancingCat.test']();
   assert.ok(decorated.get('file') > before, 'both: floating cat placed');
   assert.ok(panelHasCat(), 'both: cat also in the panel');
+  commands['dancingCat.stop']();
+
+  // you're typing to Claude (no active editor) and a diff view is open:
+  // its hidden "old version" side (git) comes first in the list, the real file second
+  cfg.showIn = 'editor';
+  const gitSide = makeEditor('git', 'diff-old-side');
+  const diffFile = makeEditor('file', 'diff-real-file');
+  vscode.window.activeTextEditor = undefined;
+  vscode.window.visibleTextEditors = [gitSide, diffFile];
+  commands['dancingCat.test']();
+  assert.ok(decorated.get('diff-real-file') >= 1, 'diff view: the cat floats in the real file');
+  assert.ok(!decorated.get('diff-old-side'), 'diff view: never in the hidden old-version side');
+  commands['dancingCat.stop']();
+
+  // two files side by side: the cat goes to the one you used last, even after you click into Claude
+  const left = makeEditor('file', 'left-file');
+  const right = makeEditor('file', 'right-file');
+  vscode.window.visibleTextEditors = [left, right];
+  vscode.window.activeTextEditor = right;
+  editorListeners.forEach((fn) => fn(right));  // you clicked into the right file
+  vscode.window.activeTextEditor = undefined;  // ...then into the Claude chat
+  commands['dancingCat.test']();
+  assert.ok(decorated.get('right-file') >= 1, 'floats in the editor you used last');
+  assert.ok(!decorated.get('left-file'), 'not in the other one');
   commands['dancingCat.stop']();
 
   vscode.window.activeTextEditor = undefined;
