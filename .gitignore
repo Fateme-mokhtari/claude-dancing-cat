@@ -1,0 +1,10 @@
+# packaged extension (attach it to a GitHub Release instead)
+*.vsix
+
+# local backups of the cat pictures and logo before editing
+media-originals/
+
+node_modules/
+*.bak
+.DS_Store
+Thumbs.db

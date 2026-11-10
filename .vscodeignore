@@ -1,0 +1,10 @@
+# files that are in the GitHub repo but not in the published extension
+media-originals/**
+images/**
+test/**
+.github/**
+.gitignore
+DEVELOPMENT.md
+*.vsix
+.vscode/**
+**/*.bak

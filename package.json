@@ -1,0 +1,125 @@
+{
+  "name": "claude-dancing-cat",
+  "displayName": "Dancing Cat for Claude Code",
+  "description": "A random cat dances while Claude Code is thinking, and naps when it's done. In a panel, floating in your editor, or both.",
+  "version": "0.1.0",
+  "publisher": "fatemeh-mokhtari",
+  "author": "Fatemeh Mokhtari",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Fateme-mokhtari/claude-dancing-cat.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Fateme-mokhtari/claude-dancing-cat/issues"
+  },
+  "homepage": "https://github.com/Fateme-mokhtari/claude-dancing-cat#readme",
+  "preview": true,
+  "icon": "resources/icon.png",
+  "galleryBanner": {
+    "color": "#2a1f3d",
+    "theme": "dark"
+  },
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "claude",
+    "claude code",
+    "cat",
+    "dancing",
+    "gif",
+    "fun",
+    "ai",
+    "pet"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./extension.js",
+  "scripts": {
+    "test": "node test/hooks.test.js && node test/extension.test.js",
+    "vscode:uninstall": "node ./uninstall.js"
+  },
+  "contributes": {
+    "viewsContainers": {
+      "panel": [
+        {
+          "id": "dancingCatPanel",
+          "title": "Dancing Cat",
+          "icon": "resources/cat.svg"
+        }
+      ]
+    },
+    "views": {
+      "dancingCatPanel": [
+        {
+          "type": "webview",
+          "id": "dancingCat.view",
+          "name": "Dancing Cat",
+          "icon": "resources/cat.svg"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "dancingCat.test",
+        "title": "Test Dance",
+        "category": "Dancing Cat"
+      },
+      {
+        "command": "dancingCat.stop",
+        "title": "Stop Dancing",
+        "category": "Dancing Cat"
+      },
+      {
+        "command": "dancingCat.choosePosition",
+        "title": "Choose Where the Cat Appears",
+        "category": "Dancing Cat"
+      },
+      {
+        "command": "dancingCat.chooseCatsFolder",
+        "title": "Choose Cats Folder",
+        "category": "Dancing Cat"
+      },
+      {
+        "command": "dancingCat.installHooks",
+        "title": "Install Claude Code Hooks",
+        "category": "Dancing Cat"
+      },
+      {
+        "command": "dancingCat.removeHooks",
+        "title": "Remove Claude Code Hooks",
+        "category": "Dancing Cat"
+      }
+    ],
+    "configuration": {
+      "title": "Dancing Cat",
+      "properties": {
+        "dancingCat.showIn": {
+          "type": "string",
+          "enum": [
+            "panel",
+            "editor",
+            "both"
+          ],
+          "enumDescriptions": [
+            "In the Dancing Cat tab (bottom panel, or wherever you moved it)",
+            "A small cat floating next to your cursor in the code editor (experimental)",
+            "In both places"
+          ],
+          "default": "panel",
+          "description": "Where the cat dances while Claude is thinking."
+        },
+        "dancingCat.catsFolder": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Folder with your own cat pictures (`.gif`, animated `.webp`, `.png`, `.jpg`). One is picked at random each time Claude starts thinking. Leave empty to use the built-in cats. Relative paths (like `cats` or `~/cats`) are counted from your home folder. Tip: GIFs with transparent backgrounds (like Giphy *Stickers*) look best when floating."
+        }
+      }
+    }
+  }
+}

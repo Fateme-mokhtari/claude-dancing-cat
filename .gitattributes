@@ -1,0 +1,8 @@
+# same line endings on every computer
+* text=auto eol=lf
+
+# pictures are binary
+*.png binary
+*.webp binary
+*.gif binary
+*.jpg binary
