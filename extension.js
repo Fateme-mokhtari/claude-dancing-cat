@@ -111,7 +111,7 @@ function activate(context) {
   context.subscriptions.push({ dispose: () => fs.unwatchFile(STATE_FILE) });
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('dancingCat.test', () => {
+    vscode.commands.registerCommand('dancingCat.showDance', () => {
       startDancing();
       // after 5 seconds go back to napping, unless Claude really started thinking meanwhile
       setTimeout(() => { if (readState() !== 'thinking') napping(); }, 5000);
@@ -332,7 +332,7 @@ async function choosePosition() {
   const choice = await vscode.window.showQuickPick(items, { placeHolder: 'Where should the cat dance while Claude is thinking?' });
   if (!choice) return;
   await config().update('showIn', choice.value, vscode.ConfigurationTarget.Global);
-  vscode.window.showInformationMessage('🐱 Saved! Run "Dancing Cat: Test Dance" to see it.');
+  vscode.window.showInformationMessage('🐱 Saved! Run "Dancing Cat: Show Me a Dance" to see it.');
 }
 
 // "Dancing Cat: Choose Cats Folder"
@@ -358,7 +358,7 @@ async function chooseCatsFolder() {
   await config().update('catsFolder', dir, vscode.ConfigurationTarget.Global);
   const count = picturesIn(dir).length;
   vscode.window.showInformationMessage(count
-    ? `🐱 Using ${count} cat${count === 1 ? '' : 's'} from ${dir}. Run "Dancing Cat: Test Dance" to see one!`
+    ? `🐱 Using ${count} cat${count === 1 ? '' : 's'} from ${dir}. Run "Dancing Cat: Show Me a Dance" to see one!`
     : `No pictures in ${dir} yet. Add .gif or .webp files there; until then the built-in cats dance.`);
 }
 

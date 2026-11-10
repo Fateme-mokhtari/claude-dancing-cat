@@ -29,7 +29,7 @@ A random cat dances in VS Code while Claude Code is thinking, and takes a nap wh
 2. Click **Set Up** in the message that appears. (Or open the Command Palette with `Ctrl+Shift+P` / `Cmd+Shift+P` and run **Dancing Cat: Install Claude Code Hooks**.)
 3. Restart Claude Code and send it a prompt. The cat starts dancing!
 
-Run **Dancing Cat: Test Dance** any time to see a cat for 5 seconds.
+Run **Dancing Cat: Show Me a Dance** any time to see a cat for 5 seconds.
 
 ## Where the cat appears
 
@@ -51,7 +51,7 @@ Tip: cats with a transparent background look best, especially when floating. On 
 
 | Command | What it does |
 |---|---|
-| Dancing Cat: Test Dance | Shows a dancing cat for 5 seconds |
+| Dancing Cat: Show Me a Dance | Shows a dancing cat for 5 seconds |
 | Dancing Cat: Stop Dancing | Puts the cat back to sleep (same as clicking the status bar cat) |
 | Dancing Cat: Choose Where the Cat Appears | Panel, floating, or both |
 | Dancing Cat: Choose Cats Folder | Use your own cats, or the built-in ones |

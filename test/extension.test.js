@@ -128,11 +128,11 @@ function openWindow(globalState) {
   assert.strictEqual(view.webview.options.enableScripts, false);
   step('the panel shows the sleeping cat while Claude is idle');
 
-  commands['dancingCat.test']();
+  commands['dancingCat.showDance']();
   assert.ok(view.webview.html.includes('class="dancing"'));
   assert.ok(builtInCatShown(), 'a built-in cat is shown');
   assert.ok(statusItem.visible && statusItem.text.includes('dancing'));
-  step('Test Dance shows a built-in cat and the status bar item');
+  step('Show Me a Dance shows a built-in cat and the status bar item');
 
   commands['dancingCat.stop']();
   assert.ok(view.webview.html.includes('class="napping"') && !statusItem.visible);
@@ -152,13 +152,13 @@ function openWindow(globalState) {
   fs.copyFileSync(path.join(root, 'media', anyCat), path.join(myCats, 'my-cat.webp'));
   for (const setting of [myCats, 'my cats', '~/my cats', '~\\my cats']) {
     cfg.catsFolder = setting;
-    commands['dancingCat.test']();
+    commands['dancingCat.showDance']();
     assert.ok(view.webview.html.includes('my-cat.webp'), 'uses my cat with setting: ' + setting);
     assert.ok(view.webview.options.localResourceRoots.some((u) => u.fsPath === myCats), 'panel may load: ' + setting);
     commands['dancingCat.stop']();
   }
   cfg.catsFolder = path.join(myCats, 'does-not-exist');
-  commands['dancingCat.test']();
+  commands['dancingCat.showDance']();
   assert.ok(builtInCatShown(), 'falls back to the built-in cats');
   commands['dancingCat.stop']();
   delete cfg.catsFolder;
@@ -178,7 +178,7 @@ function openWindow(globalState) {
   vscode.window.visibleTextEditors = [output, code];
   panelShown = 0;
   const panelHasCat = () => /<img class="cat"/.test(view.webview.html);
-  commands['dancingCat.test']();
+  commands['dancingCat.showDance']();
   assert.ok(decorated.get('file') >= 1, 'floating cat placed in the code file');
   assert.ok(!decorated.get('output'), 'never in the Output panel');
   assert.strictEqual(panelShown, 0, 'panel not forced open in editor mode');
@@ -201,7 +201,7 @@ function openWindow(globalState) {
   assert.ok(view.webview.html.includes('sleeping-cat.webp'), 'napping cat in the panel afterwards');
   vscode.window.activeTextEditor = output;
   vscode.window.visibleTextEditors = [output];  // only the Output panel is open
-  commands['dancingCat.test']();
+  commands['dancingCat.showDance']();
   assert.ok(!decorated.get('output'), 'still never in the Output panel');
   assert.ok(panelHasCat(), 'no code file: the cat dances in the panel');
   assert.strictEqual(panelShown, 2, 'falls back to the panel');
@@ -211,7 +211,7 @@ function openWindow(globalState) {
   vscode.window.activeTextEditor = code;
   vscode.window.visibleTextEditors = [code];
   const before = decorated.get('file');
-  commands['dancingCat.test']();
+  commands['dancingCat.showDance']();
   assert.ok(decorated.get('file') > before, 'both: floating cat placed');
   assert.ok(panelHasCat(), 'both: cat also in the panel');
   commands['dancingCat.stop']();
@@ -223,7 +223,7 @@ function openWindow(globalState) {
   const diffFile = makeEditor('file', 'diff-real-file');
   vscode.window.activeTextEditor = undefined;
   vscode.window.visibleTextEditors = [gitSide, diffFile];
-  commands['dancingCat.test']();
+  commands['dancingCat.showDance']();
   assert.ok(decorated.get('diff-real-file') >= 1, 'diff view: the cat floats in the real file');
   assert.ok(!decorated.get('diff-old-side'), 'diff view: never in the hidden old-version side');
   commands['dancingCat.stop']();
@@ -235,7 +235,7 @@ function openWindow(globalState) {
   vscode.window.activeTextEditor = right;
   editorListeners.forEach((fn) => fn(right));  // you clicked into the right file
   vscode.window.activeTextEditor = undefined;  // ...then into the Claude chat
-  commands['dancingCat.test']();
+  commands['dancingCat.showDance']();
   assert.ok(decorated.get('right-file') >= 1, 'floats in the editor you used last');
   assert.ok(!decorated.get('left-file'), 'not in the other one');
   commands['dancingCat.stop']();

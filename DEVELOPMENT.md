@@ -34,7 +34,7 @@ The tests use a temporary fake home folder, so your real `~/.claude` is never to
 ## Try it without installing
 
 1. Open this folder in VS Code and press **F5** (pick "VS Code Extension Development" if asked).
-2. In the new window, run **Dancing Cat: Test Dance** from the Command Palette.
+2. In the new window, run **Dancing Cat: Show Me a Dance** from the Command Palette.
 
 ## Install it on your own computer
 

@@ -66,8 +66,8 @@
     },
     "commands": [
       {
-        "command": "dancingCat.test",
-        "title": "Test Dance",
+        "command": "dancingCat.showDance",
+        "title": "Show Me a Dance",
         "category": "Dancing Cat"
       },
       {
