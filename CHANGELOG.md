@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.1
+
+- Only moving cats dance now: your cats folder uses animated `.gif` and `.webp` files. Still pictures (`.png`, `.jpg`, still `.webp`) are skipped. If your folder only has still pictures, the built-in cats dance instead.
+- Fixes very large cats floating in the editor: every cat that can dance is now scaled to the right size.
+
 ## 0.1.0
 
 First public release.
