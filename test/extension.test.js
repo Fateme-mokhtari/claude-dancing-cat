@@ -164,6 +164,33 @@ function openWindow(globalState) {
   delete cfg.catsFolder;
   step('own cats folder works with full, relative and ~ paths, and falls back to the built-in cats');
 
+  const stills = path.join(fakeHome, 'still cats');
+  fs.mkdirSync(stills);
+  fs.copyFileSync(path.join(root, 'resources', 'icon.png'), path.join(stills, 'photo.png'));
+  fs.writeFileSync(path.join(stills, 'photo.jpg'), Buffer.from([0xff, 0xd8, 0xff, 0xe0]));
+  fs.writeFileSync(path.join(stills, 'still.webp'), Buffer.concat([Buffer.from('RIFF\0\0\0\0WEBPVP8 '), Buffer.alloc(14)]));
+  cfg.catsFolder = stills;
+  commands['dancingCat.showDance']();
+  assert.ok(builtInCatShown(), 'only still pictures in my folder: the built-in cats dance');
+  commands['dancingCat.stop']();
+  fs.copyFileSync(path.join(root, 'media', anyCat), path.join(stills, 'mover.webp'));
+  for (let i = 0; i < 10; i++) {
+    commands['dancingCat.showDance']();
+    assert.ok(view.webview.html.includes('mover.webp'), 'the moving cat is picked, never a still picture');
+    commands['dancingCat.stop']();
+  }
+  vscode.window.showQuickPick = (items) => Promise.resolve(items.find((i) => i.value === 'pick'));
+  vscode.window.showOpenDialog = () => Promise.resolve([{ fsPath: stills }]);
+  await commands['dancingCat.chooseCatsFolder']();
+  assert.ok(calls.info.at(-1).startsWith('🐱 Using 1 cat '), 'Choose Cats Folder counts only the moving cat');
+  fs.unlinkSync(path.join(stills, 'mover.webp'));
+  await commands['dancingCat.chooseCatsFolder']();
+  assert.ok(calls.info.at(-1).startsWith('No moving cats'), 'Choose Cats Folder says there are no moving cats');
+  vscode.window.showQuickPick = () => Promise.resolve(undefined);
+  vscode.window.showOpenDialog = () => Promise.resolve(undefined);
+  delete cfg.catsFolder;
+  step('only moving cats dance: PNG, JPG and still WebP files are skipped');
+
   const decorated = new Map();
   const makeEditor = (scheme, name = scheme) => ({
     document: { uri: { scheme } },

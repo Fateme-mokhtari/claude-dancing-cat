@@ -43,7 +43,7 @@ Run **Dancing Cat: Choose Where the Cat Appears**:
 
 ## Use your own cats
 
-Run **Dancing Cat: Choose Cats Folder** and pick a folder with `.gif`, animated `.webp`, `.png` or `.jpg` files. A random one dances each time Claude starts thinking. Choose **Use the built-in cats** to switch back.
+Run **Dancing Cat: Choose Cats Folder** and pick a folder with moving cats: animated `.gif` or `.webp` files. A random one dances each time Claude starts thinking. Still pictures (like `.png`, `.jpg` or a still `.webp`) are skipped. Your cats replace the built-in ones; if your folder has no moving cats, the built-in cats dance. Choose **Use the built-in cats** to switch back.
 
 Tip: cats with a transparent background look best, especially when floating. On giphy.com, the **Stickers** tab has these.
 

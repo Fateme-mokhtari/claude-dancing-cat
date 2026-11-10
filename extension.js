@@ -8,12 +8,11 @@ const hooks = require('./hooks');
 const STATE_FILE = hooks.STATE_FILE;  // the hooks write "thinking" / "idle" here
 const VIEW_ID = 'dancingCat.view';    // the "Dancing Cat" tab in the bottom panel (see package.json)
 const FLOAT_HEIGHT = 180;             // size (px) of the cat floating in the code editor
-const PICTURE = /\.(png|jpe?g|gif|webp)$/i;
+const CAT_FILE = /\.(gif|webp)$/i;   // only moving cats dance: GIFs and animated WebPs
 const DONT_ASK_SETUP = 'dancingCat.dontAskSetup';
 const SETUP_ASKED_AT = 'dancingCat.setupAskedAt';
 const ONE_DAY = 24 * 60 * 60 * 1000;
 
-const DANCES = ['wiggle', 'spin', 'bounce', 'moonwalk', 'disco'];
 const MESSAGES = [
   'Claude is thinking… the cat is dancing',
   'Busting moves while the tokens flow',
@@ -35,7 +34,6 @@ let mediaDir = null;    // built-in cats
 let sleepFile = null;   // resources/sleeping-cat.webp, shown while Claude is idle
 let thinking = false;   // is Claude working right now?
 let catPath = null;     // full path of the picture currently shown
-let dance = null;       // CSS dance for still pictures (animated ones dance on their own)
 let message = NAP_MESSAGE;
 let awayMessage = AWAY_MESSAGES[0];
 let statusItem = null;
@@ -141,28 +139,25 @@ function customFolder() {
   return path.isAbsolute(dir) ? dir : path.join(os.homedir(), dir);
 }
 
-function picturesIn(dir) {
+// The moving cats (GIFs and animated WebPs) in a folder. Still pictures are skipped.
+function catsIn(dir) {
   try {
-    return fs.readdirSync(dir).filter((f) => PICTURE.test(f)).map((f) => path.join(dir, f));
+    return fs.readdirSync(dir).filter((f) => CAT_FILE.test(f)).map((f) => path.join(dir, f)).filter(isAnimated);
   } catch { return []; }
 }
 
 // Full paths of the cats to choose from: the user's folder if it has any, otherwise the built-in ones
 function listCats() {
   const dir = customFolder();
-  const mine = dir ? picturesIn(dir) : [];
-  return mine.length ? mine : picturesIn(mediaDir);
+  const mine = dir ? catsIn(dir) : [];
+  return mine.length ? mine : catsIn(mediaDir);
 }
 
 // ---------- Dancing and napping ----------
 
 function startDancing() {
-  // Prefer moving cats (GIF / animated WebP): if there are any, only pick from them
-  const all = listCats();
-  const movers = all.filter(isAnimated);
-  const cats = movers.length ? movers : all;
+  const cats = listCats();
   catPath = cats.length ? pick(cats) : null;
-  dance = catPath && !isAnimated(catPath) ? pick(DANCES) : null;
   message = pick(MESSAGES);
   awayMessage = pick(AWAY_MESSAGES);
   thinking = true;
@@ -185,14 +180,12 @@ function startDancing() {
 }
 
 // Claude is done: the cat stays in the panel and naps.
-// Uses resources/sleeping-cat.webp, or else a still picture, or else a 😴 emoji.
+// Uses resources/sleeping-cat.webp, or else a 😴 emoji.
 function napping() {
   thinking = false;
   floatingOnly = false;
   stopFloating();
-  const stills = listCats().filter((f) => !isAnimated(f));
-  catPath = fs.existsSync(sleepFile) ? sleepFile : stills.length ? pick(stills) : null;
-  dance = null;
+  catPath = fs.existsSync(sleepFile) ? sleepFile : null;
   message = NAP_MESSAGE;
   render();
   clearInterval(statusTimer);
@@ -308,12 +301,11 @@ function isAnimated(file) {
   return isExtendedWebp(b) && (b[20] & 0x02) !== 0;
 }
 
-// Read a GIF's, PNG's or WebP's width and height from the start of the file
+// Read a GIF's or animated WebP's width and height from the start of the file
 function imageSize(file) {
   const b = readHeader(file);
   if (!b) return null;
   if (b.toString('ascii', 0, 3) === 'GIF') return { width: b.readUInt16LE(6), height: b.readUInt16LE(8) };
-  if (b.readUInt32BE(0) === 0x89504e47) return { width: b.readUInt32BE(16), height: b.readUInt32BE(20) };
   if (isExtendedWebp(b)) return { width: 1 + b.readUIntLE(24, 3), height: 1 + b.readUIntLE(27, 3) };
   return null;
 }
@@ -356,10 +348,10 @@ async function chooseCatsFolder() {
   if (!picked) return;
   const dir = picked[0].fsPath;
   await config().update('catsFolder', dir, vscode.ConfigurationTarget.Global);
-  const count = picturesIn(dir).length;
+  const count = catsIn(dir).length;
   vscode.window.showInformationMessage(count
     ? `🐱 Using ${count} cat${count === 1 ? '' : 's'} from ${dir}. Run "Dancing Cat: Show Me a Dance" to see one!`
-    : `No pictures in ${dir} yet. Add .gif or .webp files there; until then the built-in cats dance.`);
+    : `No moving cats in ${dir} yet. Add animated .gif or .webp files there (still pictures are skipped); until then the built-in cats dance.`);
 }
 
 // ---------- Setup: the Claude Code hooks ----------
@@ -454,11 +446,6 @@ const baseCss = `
   p { opacity:.8; margin:8px 0 0; font-size:12px; text-align:center; }
   .notes { position:absolute; bottom:8px; font-size:28px; animation: float 2s linear infinite; }
   @keyframes float { from { transform: translateY(0); opacity:1 } to { transform: translateY(-120px); opacity:0 } }
-  @keyframes wiggle { 0%,100% { transform: rotate(-15deg) } 50% { transform: rotate(15deg) } }
-  @keyframes spin { to { transform: rotate(360deg) } }
-  @keyframes bounce { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-30px) } }
-  @keyframes moonwalk { 0%,100% { transform: translateX(-80px) scaleX(1) } 49% { transform: translateX(80px) scaleX(1) } 50% { transform: translateX(80px) scaleX(-1) } 99% { transform: translateX(-80px) scaleX(-1) } }
-  @keyframes disco { 0% { transform: scale(1) rotate(0); filter:hue-rotate(0) } 50% { transform: scale(1.15) rotate(20deg); filter:hue-rotate(180deg) } 100% { transform: scale(1) rotate(0); filter:hue-rotate(360deg) } }
 `;
 
 // One paw print: a big pad and four toes (toes point up; the CSS turns it to walk right)
@@ -482,8 +469,6 @@ const awayCss = `
 `;
 
 function pageHtml(cspSource, src) {
-  const speed = { wiggle: '.4s', spin: '1s', bounce: '.5s', moonwalk: '2s', disco: '.8s' }[dance];
-  const animation = dance ? `.cat { animation: ${dance} ${speed} ease-in-out infinite; }` : '';
   const notes = thinking
     ? `<span class="notes" style="left:15%">♪</span>
        <span class="notes" style="left:80%; animation-delay:1s">♫</span>`
@@ -507,7 +492,7 @@ function pageHtml(cspSource, src) {
     : `<div class="emoji">${thinking ? '😸' : '😴'}</div>`;
   return `<!DOCTYPE html><html><head>
     <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${cspSource}; style-src 'unsafe-inline';">
-    <style>${baseCss} ${animation}</style>
+    <style>${baseCss}</style>
   </head><body class="${thinking ? 'dancing' : 'napping'}">
     ${notes}
     ${picture}

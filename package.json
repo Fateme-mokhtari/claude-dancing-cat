@@ -117,7 +117,7 @@
         "dancingCat.catsFolder": {
           "type": "string",
           "default": "",
-          "markdownDescription": "Folder with your own cat pictures (`.gif`, animated `.webp`, `.png`, `.jpg`). One is picked at random each time Claude starts thinking. Leave empty to use the built-in cats. Relative paths (like `cats` or `~/cats`) are counted from your home folder. Tip: GIFs with transparent backgrounds (like Giphy *Stickers*) look best when floating."
+          "markdownDescription": "Folder with your own moving cats (animated `.gif` or `.webp`; still pictures are skipped). One is picked at random each time Claude starts thinking. Leave empty to use the built-in cats. Relative paths (like `cats` or `~/cats`) are counted from your home folder. Tip: GIFs with transparent backgrounds (like Giphy *Stickers*) look best when floating."
         }
       }
     }
