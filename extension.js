@@ -22,6 +22,13 @@ const MESSAGES = [
   'Hold on, it’s a long song'
 ];
 const NAP_MESSAGE = 'Cat is napping… send Claude a prompt to wake it up';
+// shown in the panel while the cat is away, floating in your editor
+const AWAY_MESSAGES = [
+  'The cat ran off to dance in your code!',
+  'Shh… the cat sneaked into your code 👀',
+  'Gone dancing. Back when Claude is done.',
+  'Out on the dance floor (your editor)'
+];
 
 let view = null;        // the panel's webview (null until VS Code first shows it)
 let mediaDir = null;    // built-in cats
@@ -30,10 +37,12 @@ let thinking = false;   // is Claude working right now?
 let catPath = null;     // full path of the picture currently shown
 let dance = null;       // CSS dance for still pictures (animated ones dance on their own)
 let message = NAP_MESSAGE;
+let awayMessage = AWAY_MESSAGES[0];
 let statusItem = null;
 let statusTimer = null;
 let floatTypes = null;  // { below, above } decorations for the cat floating in the editor
 let floatEditor = null; // the editor the floating cat is in
+let floatingOnly = false; // "editor" mode and the cat is floating: the panel must not show a second cat
 
 const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
 const config = () => vscode.workspace.getConfiguration('dancingCat');
@@ -64,8 +73,17 @@ function activate(context) {
     })
   );
 
-  // The floating cat follows your cursor, the editor you switch to, and scrolling
-  const follow = () => { if (floatTypes) placeFloatingCat(); };
+  // The floating cat follows your cursor, the editor you switch to, and scrolling.
+  // In "editor" mode, if no code file is visible anymore the panel takes over (and back again).
+  const follow = () => {
+    if (!floatTypes) return;
+    const placed = placeFloatingCat();
+    if (showIn() === 'editor' && placed !== floatingOnly) {
+      floatingOnly = placed;
+      render();
+      if (!placed) reveal();
+    }
+  };
   context.subscriptions.push(
     vscode.window.onDidChangeActiveTextEditor(follow),
     vscode.window.onDidChangeTextEditorSelection(follow),
@@ -141,13 +159,16 @@ function startDancing() {
   catPath = cats.length ? pick(cats) : null;
   dance = catPath && !isAnimated(catPath) ? pick(DANCES) : null;
   message = pick(MESSAGES);
+  awayMessage = pick(AWAY_MESSAGES);
   thinking = true;
-  render();
 
   const where = showIn();
   const floating = where !== 'panel' && catPath && startFloating(catPath);
-  // Show the panel if asked to, or as a backup when there's no code file open to float in
-  if (where !== 'editor' || !floating) reveal();
+  // In "editor" mode the cat dances only in the editor. The panel is the backup
+  // when there's no code file open to float in.
+  floatingOnly = where === 'editor' && !!floating;
+  render();
+  if (!floatingOnly) reveal();
 
   // little animated cat in the status bar too
   const frames = ['$(loading~spin) Cat is dancing ♪', '$(loading~spin) Cat is dancing ♫'];
@@ -162,6 +183,7 @@ function startDancing() {
 // Uses resources/sleeping-cat.webp, or else a still picture, or else a 😴 emoji.
 function napping() {
   thinking = false;
+  floatingOnly = false;
   stopFloating();
   const stills = listCats().filter((f) => !isAnimated(f));
   catPath = fs.existsSync(sleepFile) ? sleepFile : stills.length ? pick(stills) : null;
@@ -421,6 +443,26 @@ const baseCss = `
   @keyframes disco { 0% { transform: scale(1) rotate(0); filter:hue-rotate(0) } 50% { transform: scale(1.15) rotate(20deg); filter:hue-rotate(180deg) } 100% { transform: scale(1) rotate(0); filter:hue-rotate(360deg) } }
 `;
 
+// One paw print: a big pad and four toes (toes point up; the CSS turns it to walk right)
+const PAW_SHAPE = '<g fill="currentColor"><ellipse cx="12" cy="16" rx="5" ry="4.2"/>'
+  + '<ellipse cx="5.6" cy="9.6" rx="2.2" ry="2.8"/><ellipse cx="9.6" cy="5.4" rx="2.2" ry="2.8"/>'
+  + '<ellipse cx="14.4" cy="5.4" rx="2.2" ry="2.8"/><ellipse cx="18.4" cy="9.6" rx="2.2" ry="2.8"/></g>';
+
+// Paw prints that appear one after another, heading right, then fade (no scripts, just CSS)
+const awayCss = `
+  .trail { position:relative; width:210px; height:64px; color:var(--vscode-foreground); }
+  .paw { position:absolute; opacity:0; animation: paw 2.8s ease-out infinite; }
+  @keyframes paw {
+    0%   { opacity:0;  transform: rotate(90deg) scale(.5) }
+    12%  { opacity:.8; transform: rotate(90deg) scale(1) }
+    60%  { opacity:.8; transform: rotate(90deg) scale(1) }
+    100% { opacity:0;  transform: rotate(90deg) scale(1) }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .paw { animation:none; opacity:.7; transform: rotate(90deg); }
+  }
+`;
+
 function pageHtml(cspSource, src) {
   const speed = { wiggle: '.4s', spin: '1s', bounce: '.5s', moonwalk: '2s', disco: '.8s' }[dance];
   const animation = dance ? `.cat { animation: ${dance} ${speed} ease-in-out infinite; }` : '';
@@ -428,6 +470,20 @@ function pageHtml(cspSource, src) {
     ? `<span class="notes" style="left:15%">♪</span>
        <span class="notes" style="left:80%; animation-delay:1s">♫</span>`
     : '';
+  if (thinking && floatingOnly) {
+    // The cat is floating in the editor: a trail of paw prints runs off the panel.
+    // Drawn as a small shape in the theme's text colour, so it shows on dark and light themes.
+    const paws = [[0, 34], [44, 12], [88, 34], [132, 12], [176, 34]]
+      .map(([x, y], i) => `<svg class="paw" style="left:${x}px; top:${y}px; animation-delay:${i * 0.35}s" viewBox="0 0 24 24" width="24" height="24">${PAW_SHAPE}</svg>`)
+      .join('');
+    return `<!DOCTYPE html><html><head>
+      <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline';">
+      <style>${baseCss} ${awayCss}</style>
+    </head><body class="dancing away">
+      <div class="trail" aria-hidden="true">${paws}</div>
+      <p>${awayMessage}</p>
+    </body></html>`;
+  }
   const picture = src
     ? `<img class="cat" src="${src}" alt="${thinking ? 'dancing' : 'napping'} cat">`
     : `<div class="emoji">${thinking ? '😸' : '😴'}</div>`;

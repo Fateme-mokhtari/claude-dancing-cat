@@ -20,6 +20,7 @@ const commands = {};
 const cfg = {};
 let provider = null;
 let winListeners = [];
+let editorListeners = []; // the extension's "you switched editor / moved the cursor / scrolled" handlers
 let decorationsDisposed = 0;
 const statusItem = { text: '', visible: false, show() { this.visible = true; }, hide() { this.visible = false; }, dispose() {} };
 const disposable = { dispose() {} };
@@ -36,9 +37,9 @@ const vscode = {
     },
     createStatusBarItem: () => statusItem,
     registerWebviewViewProvider: (id, p) => { provider = p; return disposable; },
-    onDidChangeActiveTextEditor: () => disposable,
-    onDidChangeTextEditorSelection: () => disposable,
-    onDidChangeTextEditorVisibleRanges: () => disposable,
+    onDidChangeActiveTextEditor: (fn) => { editorListeners.push(fn); return disposable; },
+    onDidChangeTextEditorSelection: (fn) => { editorListeners.push(fn); return disposable; },
+    onDidChangeTextEditorVisibleRanges: (fn) => { editorListeners.push(fn); return disposable; },
     showInformationMessage: (m) => { calls.info.push(m); return Promise.resolve(undefined); },
     showWarningMessage: (m) => { calls.warn.push(m); return Promise.resolve(undefined); },
     showErrorMessage: (m) => { calls.error.push(m); return Promise.resolve(undefined); },
@@ -80,6 +81,7 @@ const builtInCatShown = () => /media\/[^"]+\.webp/.test(view.webview.html);
 // Each "window" loads its own copy of the extension; globalState is shared between windows like in VS Code
 function openWindow(globalState) {
   delete require.cache[require.resolve(extPath)];
+  editorListeners = [];
   const ext = require(extPath);
   const context = {
     extensionPath: root,
@@ -175,21 +177,49 @@ function openWindow(globalState) {
   vscode.window.activeTextEditor = output;  // you clicked into the Output panel last
   vscode.window.visibleTextEditors = [output, code];
   panelShown = 0;
+  const panelHasCat = () => /<img class="cat"/.test(view.webview.html);
   commands['dancingCat.test']();
   assert.ok(decorated.get('file') >= 1, 'floating cat placed in the code file');
   assert.ok(!decorated.get('output'), 'never in the Output panel');
   assert.strictEqual(panelShown, 0, 'panel not forced open in editor mode');
+  assert.ok(!panelHasCat(), 'editor mode: no second cat in the panel');
+  assert.strictEqual((view.webview.html.match(/class="paw"/g) || []).length, 5, 'panel shows a trail of 5 paw prints');
+  assert.ok(/<p>[^<]*(code|dance floor|dancing)[^<]*<\/p>/.test(view.webview.html), 'panel says where the cat went');
+  // the code file gets closed while the cat dances -> the panel takes over
+  vscode.window.activeTextEditor = output;
+  vscode.window.visibleTextEditors = [output];
+  editorListeners.forEach((fn) => fn());
+  assert.ok(panelHasCat(), 'no code file visible: the cat moves to the panel');
+  assert.strictEqual(panelShown, 1, 'panel opened as the fallback');
+  // and a code file comes back -> floating again, panel empty again
+  vscode.window.activeTextEditor = code;
+  vscode.window.visibleTextEditors = [code];
+  editorListeners.forEach((fn) => fn());
+  assert.ok(!panelHasCat(), 'code file back: the cat floats again, not in the panel');
   commands['dancingCat.stop']();
   assert.strictEqual(decorationsDisposed, 2, 'floating cat removed when napping');
+  assert.ok(view.webview.html.includes('sleeping-cat.webp'), 'napping cat in the panel afterwards');
+  vscode.window.activeTextEditor = output;
   vscode.window.visibleTextEditors = [output];  // only the Output panel is open
   commands['dancingCat.test']();
   assert.ok(!decorated.get('output'), 'still never in the Output panel');
-  assert.strictEqual(panelShown, 1, 'falls back to the panel');
+  assert.ok(panelHasCat(), 'no code file: the cat dances in the panel');
+  assert.strictEqual(panelShown, 2, 'falls back to the panel');
   commands['dancingCat.stop']();
+  // "both": floating and in the panel
+  cfg.showIn = 'both';
+  vscode.window.activeTextEditor = code;
+  vscode.window.visibleTextEditors = [code];
+  const before = decorated.get('file');
+  commands['dancingCat.test']();
+  assert.ok(decorated.get('file') > before, 'both: floating cat placed');
+  assert.ok(panelHasCat(), 'both: cat also in the panel');
+  commands['dancingCat.stop']();
+
   vscode.window.activeTextEditor = undefined;
   vscode.window.visibleTextEditors = [];
   delete cfg.showIn;
-  step('the floating cat sits in code files only (never the Output panel); the panel is the fallback');
+  step('floating cat: code files only, no second cat in the panel in editor mode, panel takes over when needed, "both" shows both');
 
   const settingsFile = path.join(claudeDir, 'settings.json');
   await commands['dancingCat.installHooks']();
