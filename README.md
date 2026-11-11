@@ -24,7 +24,7 @@ A random cat dances in VS Code while Claude Code is thinking, and naps when it's
 
 ## Getting started
 
-1. Install **Dancing Cat for Claude Code** from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=fatemeh-mokhtari.claude-dancing-cat), or download the `.vsix` from [GitHub Releases](https://github.com/Fateme-mokhtari/claude-dancing-cat/releases).
+1. Install **Dancing Cat for Claude Code** from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=fatemeh-mokhtari.claude-dancing-cat) or [Open VSX](https://open-vsx.org/extension/fatemeh-mokhtari/claude-dancing-cat) (Cursor), or download the `.vsix` from [GitHub Releases](https://github.com/Fateme-mokhtari/claude-dancing-cat/releases).
 2. Click **Set Up** when prompted, or in the **Dancing Cat** panel.
 3. Restart Claude Code and send a prompt.
 
