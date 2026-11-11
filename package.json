@@ -2,7 +2,7 @@
   "name": "claude-dancing-cat",
   "displayName": "Dancing Cat for Claude Code",
   "description": "A random cat dances while Claude Code is thinking, and naps when it's done. In a panel, floating in your editor, or both.",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "publisher": "fatemeh-mokhtari",
   "author": "Fatemeh Mokhtari",
   "license": "MIT",
