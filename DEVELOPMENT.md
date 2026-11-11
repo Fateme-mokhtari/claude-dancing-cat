@@ -50,4 +50,5 @@ Then run **Developer: Reload Window**. Use the version from `package.json` in th
 1. Update `version` in `package.json` and add a section to `CHANGELOG.md`.
 2. `npm test`, then `npx @vscode/vsce package`.
 3. Upload the `.vsix` at https://marketplace.visualstudio.com/manage/publishers/fatemeh-mokhtari (**...** next to the extension, then **Update**).
-4. Create a GitHub Release for the version and attach the `.vsix`.
+4. Publish the same `.vsix` to Open VSX: `npx ovsx publish claude-dancing-cat-<version>.vsix -p <token>`. The token is under **Settings → Access Tokens** on https://open-vsx.org.
+5. Create a GitHub Release for the version and attach the `.vsix`.

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.3
+
+- Now also on [Open VSX](https://open-vsx.org/extension/fatemeh-mokhtari/claude-dancing-cat), for Cursor and other VS Code-based editors.
+- Shorter, clearer README.
+
 ## 0.1.2
 
 - If Claude Code isn't set up yet, the panel now says so and shows a **Set Up** button, instead of a cat that never wakes up.
