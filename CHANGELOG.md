@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.2
+
+- If Claude Code isn't set up yet, the panel now says so and shows a **Set Up** button, instead of a cat that never wakes up.
+
 ## 0.1.1
 
 - Only moving cats dance now: your cats folder uses animated `.gif` and `.webp` files. Still pictures (`.png`, `.jpg`, still `.webp`) are skipped. If your folder only has still pictures, the built-in cats dance instead.
