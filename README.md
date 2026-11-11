@@ -4,7 +4,7 @@
 
 A random cat dances in VS Code while Claude Code is thinking, and takes a nap when Claude is done.
 
-<!-- TODO: add a short demo GIF here, saved as images/demo.gif, e.g. ![Demo](images/demo.gif) -->
+![Demo: the cat naps in the Dancing Cat panel; after a prompt is sent to Claude Code, it jumps into the editor and dances next to the cursor while paw prints show in the panel](images/demo.gif)
 
 
 > Not affiliated with or endorsed by Anthropic. "Claude" and "Claude Code" are trademarks of Anthropic.
