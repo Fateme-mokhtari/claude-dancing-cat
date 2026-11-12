@@ -1,0 +1,74 @@
+name: Publish
+
+# Publishes each new version merged into main to the VS Code Marketplace and Open VSX,
+# then creates its GitHub Release. Pushes that keep the same version publish nothing.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: # manual retry
+
+concurrency: publish
+
+jobs:
+  check:
+    name: Is this a new version?
+    runs-on: ubuntu-latest
+    outputs:
+      new: ${{ steps.version.outputs.new }}
+      version: ${{ steps.version.outputs.version }}
+      vsix: ${{ steps.version.outputs.vsix }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # include tags, to find released versions
+      - id: version
+        run: |
+          version=$(node -p "require('./package.json').version")
+          name=$(node -p "require('./package.json').name")
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "vsix=$name-$version.vsix" >> "$GITHUB_OUTPUT"
+          if git rev-parse -q --verify "refs/tags/v$version" > /dev/null; then
+            echo "v$version is already released: nothing to publish."
+            echo "new=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "v$version is new: publishing."
+            echo "new=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  publish:
+    needs: check
+    if: needs.check.outputs.new == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # version tag and GitHub Release
+      id-token: write # Trusted Publishing, so no tokens are stored
+    env:
+      VERSION: ${{ needs.check.outputs.version }}
+      VSIX: ${{ needs.check.outputs.vsix }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+
+      - name: Test
+        run: npm test
+
+      - name: Package
+        run: npx --yes @vscode/vsce package
+
+      # --skip-duplicate makes a retry safe when a store already has this version
+      - name: Publish to the VS Code Marketplace
+        run: npx --yes @vscode/vsce publish --oidc --skip-duplicate --packagePath "$VSIX"
+
+      - name: Publish to Open VSX
+        run: npx --yes ovsx publish "$VSIX" --trusted-publishing --skip-duplicate
+
+      - name: Create the GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # release notes: this version's section of CHANGELOG.md
+          awk -v head="## $VERSION" '$0 == head { on = 1; next } /^## / { on = 0 } on' CHANGELOG.md > notes.md
+          gh release create "v$VERSION" "$VSIX" --target "$GITHUB_SHA" \
+            --title "Dancing Cat for Claude Code $VERSION 🐱💃" --notes-file notes.md

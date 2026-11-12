@@ -15,6 +15,7 @@ Notes for working on the extension itself. This file is in the GitHub repo but n
 | `images/` | Pictures for the README (not packaged) |
 | `test/` | Tests (not packaged) |
 | `.github/workflows/test.yml` | Runs the tests on Windows, macOS and Linux on every push |
+| `.github/workflows/publish.yml` | Publishes a new version when it's merged into `main` (see below) |
 
 There are no npm dependencies: you only need Node.js.
 
@@ -47,8 +48,12 @@ Then run **Developer: Reload Window**. Use the version from `package.json` in th
 
 ## Release a new version
 
-1. Update `version` in `package.json` and add a section to `CHANGELOG.md`.
-2. `npm test`, then `npx @vscode/vsce package`.
-3. Upload the `.vsix` at https://marketplace.visualstudio.com/manage/publishers/fatemeh-mokhtari (**...** next to the extension, then **Update**).
-4. Publish the same `.vsix` to Open VSX: `npx ovsx publish claude-dancing-cat-<version>.vsix -p <token>`. The token is under **Settings → Access Tokens** on https://open-vsx.org.
-5. Create a GitHub Release for the version and attach the `.vsix`.
+1. In a pull request, update `version` in `package.json` and add a section for it to `CHANGELOG.md`.
+2. Merge it. The **Publish** workflow then tests the extension, publishes it to the VS Code Marketplace and Open VSX, and creates the GitHub Release with the `.vsix`.
+
+Merges that don't change the version publish nothing. If publishing fails, fix the cause and click **Run workflow** on the Publish workflow in the **Actions** tab; stores that already have the version are skipped.
+
+Both stores trust the workflow through **Trusted Publishing**, so no tokens are stored in GitHub. It's set up once per store, with owner `Fateme-mokhtari`, repository `claude-dancing-cat` and workflow `publish.yml`:
+
+- VS Code Marketplace: https://marketplace.visualstudio.com/manage/publishers/fatemeh-mokhtari → **Trusted Publishing**
+- Open VSX: https://open-vsx.org → **Settings → Trusted Publishers**
