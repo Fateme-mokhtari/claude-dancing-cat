@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.4
+
+- A new dancing cat.
+- The black cat no longer has text written on it.
+
 ## 0.1.3
 
 - Now also on [Open VSX](https://open-vsx.org/extension/fatemeh-mokhtari/claude-dancing-cat), for Cursor and other VS Code-based editors.
